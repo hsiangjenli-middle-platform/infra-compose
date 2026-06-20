@@ -60,6 +60,56 @@ podman-compose -f compose.yaml --profile grafana up -d
 | Headlamp       | http://localhost:4466       | —                              |
 | Graylog        | http://localhost:9000       | `admin` / `admin`              |
 | Grafana        | http://localhost:3000       | `admin` / `admin`              |
+| Harbor         | http://hsiangjenli.harbor.com | `admin` / `Harbor12345`      |
+
+## Harbor (Local Registry)
+
+Harbor is deployed via the official offline installer (`harbor-online-installer-v2.14.4`) rather than as a Compose service. It serves as the local container image and Helm chart registry for the cluster.
+
+### Setup
+
+1. Edit `harbor-online-installer-v2.14.4/harbor/harbor.yml` and set the `hostname`:
+
+   ```yaml
+   hostname: hsiangjenli.harbor.com
+   ```
+
+2. Run the installer:
+
+   ```shell
+   cd harbor-online-installer-v2.14.4/harbor
+   sudo ./install.sh
+   ```
+
+3. Add the hostname to `/etc/hosts` so the browser can resolve it locally:
+
+   ```shell
+   echo "127.0.0.1 hsiangjenli.harbor.com" | sudo tee -a /etc/hosts
+   ```
+
+4. Open http://hsiangjenli.harbor.com and log in with `admin` / `Harbor12345`.
+
+### Push Images to Harbor
+
+```shell
+# Log in to Harbor
+docker login hsiangjenli.harbor.com
+
+# Tag and push an image
+docker tag my-app:latest hsiangjenli.harbor.com/middle-platform/my-app:latest
+docker push hsiangjenli.harbor.com/middle-platform/my-app:latest
+```
+
+### Push Helm Charts to Harbor
+
+```shell
+# Add Harbor as a chart repo
+helm repo add harbor-repo http://hsiangjenli.harbor.com/chartrepo/middle-platform
+
+# Package and push a chart
+helm package helm/my-chart
+helm push my-chart-0.1.0.tgz oci://hsiangjenli.harbor.com/middle-platform/charts
+```
 
 ## Configuration
 
@@ -117,12 +167,17 @@ helm template <release> helm/<chart> --namespace middle-platform
 
 ```
 .
-├── compose.yaml          # Podman Compose stack
-├── AGENTS.md             # Agent instructions and architecture guidance
-├── README.md             # This file
-├── helm/                 # Helm charts for in-cluster components
-├── grafana/provisioning/ # Grafana datasources and dashboards
-└── docs/                 # Architecture diagrams and documentation
+├── compose.yaml                          # Podman Compose stack
+├── AGENTS.md                             # Agent instructions and architecture guidance
+├── README.md                             # This file
+├── .env.example                          # Example environment variables
+├── helm/                                 # Helm charts for in-cluster components
+├── grafana/provisioning/                 # Grafana datasources and dashboards
+├── docs/                                 # Architecture diagrams and documentation
+└── harbor-online-installer-v2.14.4/      # Harbor offline installer
+    └── harbor/
+        ├── harbor.yml                    # Harbor configuration
+        └── install.sh                    # Harbor installer
 ```
 
 ## Notes
@@ -130,3 +185,4 @@ helm template <release> helm/<chart> --namespace middle-platform
 - This is a learning project; keep the architecture simple and avoid over-engineering.
 - Do not commit sensitive values (passwords, tokens, kubeconfig files) to the repository.
 - Prefer declarative configuration and infrastructure-as-code practices.
+- Harbor's `harbor.yml` and generated `docker-compose.yml` may contain deployment-specific values; review them before committing.

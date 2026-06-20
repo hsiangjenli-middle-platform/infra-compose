@@ -2,48 +2,47 @@
 
 # The IP address or hostname to access admin UI and registry service.
 # DO NOT use localhost or 127.0.0.1, because Harbor needs to be accessed by external clients.
-hostname: reg.mydomain.com
+hostname: hsiangjenli.harbor.com
 
 # http related config
 http:
   # port for http, default is 80. If https enabled, this port will redirect to https port
   port: 80
-
-# https related config
-https:
+  # https related config
+  # https:
   # https port for harbor, default is 443
-  port: 443
+  # port: 443
   # The path of cert and key files for nginx
-  certificate: /your/certificate/path
-  private_key: /your/private/key/path
+  # certificate: /your/certificate/path
+  # private_key: /your/private/key/path
   # enable strong ssl ciphers (default: false)
   # strong_ssl_ciphers: false
 
-# # Harbor will set ipv4 enabled only by default if this block is not configured
-# # Otherwise, please uncomment this block to configure your own ip_family stacks
-# ip_family:
-#   # ipv6Enabled set to true if ipv6 is enabled in docker network, currently it affected the nginx related component
-#   ipv6:
-#     enabled: false
-#   # ipv4Enabled set to true by default, currently it affected the nginx related component
-#   ipv4:
-#     enabled: true
+  # # Harbor will set ipv4 enabled only by default if this block is not configured
+  # # Otherwise, please uncomment this block to configure your own ip_family stacks
+  # ip_family:
+  #   # ipv6Enabled set to true if ipv6 is enabled in docker network, currently it affected the nginx related component
+  #   ipv6:
+  #     enabled: false
+  #   # ipv4Enabled set to true by default, currently it affected the nginx related component
+  #   ipv4:
+  #     enabled: true
 
-# # Uncomment following will enable tls communication between all harbor components
-# internal_tls:
-#   # set enabled to true means internal tls is enabled
-#   enabled: true
-#   # put your cert and key files on dir
-#   dir: /etc/harbor/tls/internal
+  # # Uncomment following will enable tls communication between all harbor components
+  # internal_tls:
+  #   # set enabled to true means internal tls is enabled
+  #   enabled: true
+  #   # put your cert and key files on dir
+  #   dir: /etc/harbor/tls/internal
 
 
-# Uncomment external_url if you want to enable external proxy
-# And when it enabled the hostname will no longer used
-# external_url: https://reg.mydomain.com:8433
+  # Uncomment external_url if you want to enable external proxy
+  # And when it enabled the hostname will no longer used
+  # external_url: https://reg.mydomain.com:8433
 
-# The initial password of Harbor admin
-# It only works in first time to install harbor
-# Remember Change the admin password from UI after launching Harbor.
+  # The initial password of Harbor admin
+  # It only works in first time to install harbor
+  # Remember Change the admin password from UI after launching Harbor.
 harbor_admin_password: Harbor12345
 
 # Harbor DB configuration
@@ -139,9 +138,9 @@ jobservice:
   max_job_duration_hours: 24
   # The jobLoggers backend name, only support "STD_OUTPUT", "FILE" and/or "DB"
   job_loggers:
-    - STD_OUTPUT
-    - FILE
-    # - DB
+  - STD_OUTPUT
+  - FILE
+  # - DB
   # The jobLogger sweeper duration (ignored if `jobLogger` is `stdout`)
   logger_sweeper_duration: 1 #days
 
@@ -165,7 +164,6 @@ log:
     rotate_size: 200M
     # The directory on your host that store log
     location: /var/log/harbor
-
   # Uncomment following lines to enable external syslog endpoint.
   # external_endpoint:
   #   # protocol used to transmit log to external endpoint, options is tcp or udp
@@ -175,7 +173,7 @@ log:
   #   # Port of external endpoint
   #   port: 5140
 
-#This attribute is for migrator to detect the version of the .cfg file, DO NOT MODIFY!
+  #This attribute is for migrator to detect the version of the .cfg file, DO NOT MODIFY!
 _version: 2.14.0
 
 # Uncomment external_database if using external database.
@@ -250,9 +248,9 @@ proxy:
   https_proxy:
   no_proxy:
   components:
-    - core
-    - jobservice
-    - trivy
+  - core
+  - jobservice
+  - trivy
 
 # metric:
 #   enabled: false

@@ -25,9 +25,10 @@ The following in-cluster components are intended to be added:
 
 - **Fluent Bit DaemonSet** — forwards pod logs to Graylog.
 - **Prometheus** — scrapes pod metrics via ServiceMonitor / PodMonitor resources.
-- **Harbor** — local container image and Helm chart registry, deployed on Kubernetes.
 
 Graylog and Grafana should be configured to **automatically discover and collect data from pods running on the Kubernetes cluster**.
+
+Harbor is already provided via the official offline installer under `harbor-online-installer-v2.14.4/`.
 
 ## Architecture Goals
 
@@ -46,7 +47,12 @@ Graylog and Grafana should be configured to **automatically discover and collect
 ## Artifact Registry
 
 - **Harbor** is used as the local container image and Helm chart registry.
-- Harbor is deployed on Kubernetes via Helm chart (under `helm/harbor` or Bitnami's Harbor chart) rather than as a Compose service.
+- Harbor is deployed via the official offline installer (`harbor-online-installer-v2.14.4/harbor/install.sh`) rather than as a Compose service.
+- Configure `harbor-online-installer-v2.14.4/harbor/harbor.yml` with the desired `hostname` (e.g., `hsiangjenli.harbor.com`) and run `sudo ./install.sh`.
+- Add the chosen hostname to `/etc/hosts` for local resolution:
+  ```shell
+  echo "127.0.0.1 hsiangjenli.harbor.com" | sudo tee -a /etc/hosts
+  ```
 - Configure downstream applications and CI/CD pipelines to push artifacts to Harbor instead of external registries.
 
 ## Conventions
