@@ -16,16 +16,18 @@ The `compose.yaml` file defines the following services:
 | `kafka-ui`   | Kafka management UI                                  |
 | `postgres`   | Shared relational database                           |
 | `headlamp`   | Kubernetes cluster observability UI (profile: k8s-ui) |
-| `harbor`     | Local container image and Helm chart registry        |
+| `graylog`    | Centralized log aggregation (profile: graylog)       |
+| `grafana`    | Metrics visualization and dashboards (profile: grafana) |
 
 ## Planned Services
 
-The following services are intended to be added to the stack:
+The following in-cluster components are intended to be added:
 
-- **Graylog** — centralized log aggregation and analysis.
-- **Grafana** — metrics visualization and dashboards.
+- **Fluent Bit DaemonSet** — forwards pod logs to Graylog.
+- **Prometheus** — scrapes pod metrics via ServiceMonitor / PodMonitor resources.
+- **Harbor** — local container image and Helm chart registry, deployed on Kubernetes.
 
-Both services should be configured to **automatically discover and collect data from pods running on the Kubernetes cluster**.
+Graylog and Grafana should be configured to **automatically discover and collect data from pods running on the Kubernetes cluster**.
 
 ## Architecture Goals
 
@@ -44,7 +46,7 @@ Both services should be configured to **automatically discover and collect data 
 ## Artifact Registry
 
 - **Harbor** is used as the local container image and Helm chart registry.
-- Harbor runs as a Compose service and is the default target for building, pushing, and pulling images and charts used by the cluster.
+- Harbor is deployed on Kubernetes via Helm chart (under `helm/harbor` or Bitnami's Harbor chart) rather than as a Compose service.
 - Configure downstream applications and CI/CD pipelines to push artifacts to Harbor instead of external registries.
 
 ## Conventions
@@ -55,25 +57,42 @@ Both services should be configured to **automatically discover and collect data 
 - Validate / render Helm charts: `helm template <release> helm/<chart> --namespace middle-platform`
 - Default Harbor project: `middle-platform`
 
-## Guidance for Adding Graylog and Grafana
+## Service Details
 
-When adding Graylog and Grafana to this stack, follow these principles:
+### Graylog
+
+- Runs as a Compose service under the `graylog` profile.
+- Requires `graylog-mongodb` and `graylog-opensearch` as backing services.
+- OpenSearch 2.12+ requires `OPENSEARCH_INITIAL_ADMIN_PASSWORD` with at least 8 characters, one uppercase letter, one lowercase letter, one digit, and one special character.
+- Default access: http://localhost:9000 (admin / admin).
+- Log inputs (GELF/UDP, Syslog/UDP) are exposed on `12201/udp` and `1514/udp`.
+
+### Grafana
+
+- Runs as a Compose service under the `grafana` profile.
+- Mounts provisioning files from `${GRAFANA_PROVISIONING_PATH:-./grafana/provisioning}`.
+- Default access: http://localhost:3000 (admin / admin).
+- Prometheus should be deployed in-cluster and configured as a data source via provisioning or the UI.
+
+## Guidance for Adding In-Cluster Components
+
+When adding Fluent Bit, Prometheus, Harbor, and related components, follow these principles:
 
 1. **Auto-discovery from Kubernetes**
    - Graylog should collect container logs from Kubernetes pods. Prefer a lightweight log shipper (e.g., Fluent Bit or Promtail) deployed as a DaemonSet in the `middle-platform` namespace, forwarding logs to the Graylog instance.
    - Grafana should discover Prometheus metrics endpoints exposed by pods via Kubernetes ServiceMonitor or PodMonitor resources. A Prometheus instance (or Grafana Agent / Alloy) should be deployed in-cluster to scrape pod targets and act as a Grafana data source.
 
 2. **Local-first configuration**
-   - Keep the local Docker Compose stack simple. Graylog and Grafana can run as Compose services, while their collectors/agents run inside Kubernetes.
+   - Keep the local Docker Compose stack simple. Graylog and Grafana run as Compose services, while their collectors/agents run inside Kubernetes.
    - Use environment variables and mounted config files for service configuration.
 
 3. **Service dependencies**
-   - Graylog requires MongoDB and Elasticsearch/OpenSearch. Consider whether to run these as additional Compose services or to reuse existing infrastructure.
+   - Graylog requires MongoDB and Elasticsearch/OpenSearch. These run as additional Compose services.
    - Grafana requires a Prometheus data source. Document how Prometheus is deployed and configured.
 
 4. **Documentation**
    - Update this file and `README.md` with setup steps, required environment variables, and access URLs.
-   - Provide Helm charts under `helm/` for log shippers, Prometheus, ServiceMonitors, and any other in-cluster components.
+   - Provide Helm charts under `helm/` for log shippers, Prometheus, ServiceMonitors, Harbor, and any other in-cluster components.
    - Document how to push images and charts to Harbor and how workloads consume them.
 
 5. **Validation**

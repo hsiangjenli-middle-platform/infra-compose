@@ -108,8 +108,79 @@ services:
       - ${KUBECONFIG_PATH:-./.kube/config}:/home/headlamp/.config/Headlamp/kubeconfigs/config:ro,Z
     restart: unless-stopped
 
+  graylog-mongodb:
+    image: docker.io/library/mongo:8.0
+    profiles:
+      - graylog
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${GRAYLOG_MONGO_USER:-graylog}
+      MONGO_INITDB_ROOT_PASSWORD: ${GRAYLOG_MONGO_PASSWORD:-graylog-mongo-secret}
+    volumes:
+      - graylog_mongo_data:/data/db
+    restart: unless-stopped
+
+  graylog-opensearch:
+    image: docker.io/opensearchproject/opensearch:2.19.1
+    profiles:
+      - graylog
+    environment:
+      cluster.name: graylog-opensearch
+      node.name: graylog-opensearch
+      discovery.type: single-node
+      OPENSEARCH_JAVA_OPTS: ${GRAYLOG_OPENSEARCH_JAVA_OPTS:--Xms512m -Xmx512m}
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${GRAYLOG_OPENSEARCH_ADMIN_PASSWORD:-Graylog@OpenSearch1}
+      plugins.security.disabled: "true"
+      bootstrap.memory_lock: "true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - graylog_opensearch_data:/usr/share/opensearch/data
+    restart: unless-stopped
+
+  graylog:
+    image: docker.io/graylog/graylog:6.2
+    profiles:
+      - graylog
+    depends_on:
+      - graylog-mongodb
+      - graylog-opensearch
+    ports:
+      - "9000:9000"
+      - "12201:12201/udp"
+      - "1514:1514/udp"
+    environment:
+      GRAYLOG_PASSWORD_SECRET: ${GRAYLOG_PASSWORD_SECRET:-somepasswordpepper}
+      GRAYLOG_ROOT_PASSWORD_SHA2: ${GRAYLOG_ROOT_PASSWORD_SHA2:-8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918}
+      GRAYLOG_HTTP_EXTERNAL_URI: ${GRAYLOG_HTTP_EXTERNAL_URI:-http://localhost:9000/}
+      GRAYLOG_MONGODB_URI: ${GRAYLOG_MONGODB_URI:-mongodb://graylog:graylog-mongo-secret@graylog-mongodb:27017/graylog?authSource=admin}
+      GRAYLOG_ELASTICSEARCH_HOSTS: ${GRAYLOG_ELASTICSEARCH_HOSTS:-http://graylog-opensearch:9200}
+    volumes:
+      - graylog_data:/usr/share/graylog/data
+    restart: unless-stopped
+
+  grafana:
+    image: docker.io/grafana/grafana:12.0.0
+    profiles:
+      - grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: ${GRAFANA_INSTALL_PLUGINS:-}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ${GRAFANA_PROVISIONING_PATH:-./grafana/provisioning}:/etc/grafana/provisioning:ro,Z
+    restart: unless-stopped
+
 volumes:
   redis_data:
   redisinsight_data:
   kafka_data:
   postgres_data:
+  graylog_mongo_data:
+  graylog_opensearch_data:
+  graylog_data:
+  grafana_data:
